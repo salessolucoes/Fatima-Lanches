@@ -6,6 +6,8 @@
 <title>Fátima Lanches | Cardápio</title>
 <meta name="description" content="Cardápio digital com pedidos online">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Kaushan+Script&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#070707;--card:#121212;--card2:#1b1b1b;--line:#262626;--text:#f5f2ea;--muted:#9c978c;--accent:#ffc400;--accent-2:#ffd84a;--red:#d62b1f;--ok:#3ecf8e;--danger:#ff5d5d;--radius:14px}
@@ -299,7 +301,7 @@ label input:focus,label textarea:focus{border-color:var(--accent)}
 /* ============ CONFIGURAÇÃO ============
    Cole aqui o link do App da Web do Google Apps Script.
    Vazio = modo demonstração (dados ficam só neste navegador, PIN 1234). */
-   const API_URL = 'https://script.google.com/macros/s/AKfycbw9eb43p5Le3l0exNoAcvc-6y2dHdjHLjBZygTLZp3HnhQ_ZZ4dJE-L3clhJkk74Zsr/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw9eb43p5Le3l0exNoAcvc-6y2dHdjHLjBZygTLZp3HnhQ_ZZ4dJE-L3clhJkk74Zsr/exec';
 /* ===================================== */
 
 const $ = s => document.querySelector(s);
@@ -468,17 +470,30 @@ async function demo(action, d) {
 }
 
 /* ================= CARDÁPIO ================= */
+function lerCacheMenu() {
+  if (!API_URL) return null;
+  try { return JSON.parse(localStorage.getItem('fatima_menu') || 'null'); } catch (e) { return null; }
+}
+function aplicarMenu(r) {
+  estado.config = r.config || {};
+  estado.produtos = r.produtos || [];
+  aplicarConfig();
+  render();
+}
 async function carregar() {
-  $('#estado').textContent = 'Carregando cardápio...';
+  // 1) mostra na hora o cardápio salvo da última visita
+  const cache = lerCacheMenu();
+  if (cache) aplicarMenu(cache);
+  else $('#estado').textContent = 'Carregando cardápio...';
+  // 2) busca a versão atual na planilha e atualiza se mudou
   try {
     const r = await api('menu');
     if (!r.ok) throw new Error(r.erro);
-    estado.config = r.config || {};
-    estado.produtos = r.produtos || [];
-    aplicarConfig();
-    render();
+    const txt = JSON.stringify({ config: r.config, produtos: r.produtos });
+    if (!cache || JSON.stringify({ config: cache.config, produtos: cache.produtos }) !== txt) aplicarMenu(r);
+    if (API_URL) try { localStorage.setItem('fatima_menu', txt); } catch (e) {}
   } catch (e) {
-    $('#estado').innerHTML = 'Não foi possível carregar o cardápio.<br><button class="btn fantasma" onclick="carregar()">Tentar novamente</button>';
+    if (!cache) $('#estado').innerHTML = 'Não foi possível carregar o cardápio.<br><button class="btn fantasma" onclick="carregar()">Tentar novamente</button>';
   }
 }
 
