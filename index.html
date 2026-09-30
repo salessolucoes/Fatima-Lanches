@@ -178,6 +178,19 @@ label input:focus,label textarea:focus{border-color:var(--accent)}
 .switch input:checked+span::before{transform:translateX(20px)}
 .aviso-demo{margin-top:18px;padding:12px 14px;border-radius:12px;border:1px dashed var(--line);color:var(--muted);font-size:13px}
 .aviso-demo .btn{margin-top:10px}
+/* pagamento */
+.pagamentos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.pag{padding:12px 6px;border-radius:12px;border:1px solid var(--line);background:#0a0a0a;font-weight:700;font-size:14px;color:var(--muted);transition:.15s}
+.pag.ativo{border-color:var(--accent);color:var(--accent);background:rgba(255,196,0,.08)}
+.dica-pag{font-size:12.5px;color:var(--muted);margin-top:6px;min-height:1em}
+.pix-box{margin:4px 0 16px;padding:14px;border-radius:14px;border:1px dashed var(--accent);background:rgba(255,196,0,.06);text-align:left}
+.sucesso .pix-box p{color:var(--text);margin:0 0 10px}
+.pix-box p strong{color:var(--accent)}
+.pix-chave{display:flex;align-items:center;gap:8px;background:#000;border:1px solid var(--line);border-radius:10px;padding:8px 8px 8px 12px}
+.pix-chave span{flex:1;min-width:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;letter-spacing:.5px;word-break:break-all}
+.copiar{background:var(--accent);color:#111;padding:9px 14px;border-radius:8px;font-weight:700;font-size:14px;flex:none}
+.pix-box small{display:block;color:var(--muted);margin-top:10px;font-size:12.5px}
+.ped-pag{font-size:13px;font-weight:600;color:var(--accent);margin-top:4px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--accent);color:#111;padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;opacity:0;transition:.25s;z-index:99;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
@@ -218,6 +231,14 @@ label input:focus,label textarea:focus{border-color:var(--accent)}
     <label>Seu nome *<input id="cNome" maxlength="60" autocomplete="name"></label>
     <label>Mesa ou retirada<input id="cMesa" maxlength="30" placeholder="Ex.: Mesa 4 ou Retirada"></label>
     <label>Observações<textarea id="cObs" maxlength="300" rows="2" placeholder="Ex.: sem cebola, ponto da carne..."></textarea></label>
+    <div class="rotulo">Forma de pagamento *</div>
+    <div class="pagamentos">
+      <button type="button" class="pag" data-pag="Pix">Pix</button>
+      <button type="button" class="pag" data-pag="Dinheiro">Dinheiro</button>
+      <button type="button" class="pag" data-pag="Cartão">Cartão</button>
+    </div>
+    <p class="dica-pag" id="dicaPag"></p>
+    <label id="boxTroco" hidden>Troco para quanto?<input id="cTroco" inputmode="decimal" maxlength="10" placeholder="Ex.: 50,00 (deixe vazio se não precisar)"></label>
     <div class="total"><span>Total</span><strong id="cTotal"></strong></div>
     <button class="btn primario" id="btnFinalizar">Finalizar pedido</button>
     <p class="erro" id="cErro"></p>
@@ -230,6 +251,11 @@ label input:focus,label textarea:focus{border-color:var(--accent)}
     <div class="icone">✅</div>
     <h3 id="sucessoTitulo">Pedido enviado!</h3>
     <p>Recebemos seu pedido e já vamos preparar.</p>
+    <div class="pix-box" id="pixBox" hidden>
+      <p>Pague <strong id="pixValor"></strong> no Pix:</p>
+      <div class="pix-chave"><span id="pixChave"></span><button class="copiar" id="btnCopiarPix">Copiar</button></div>
+      <small>Depois de pagar, mostre o comprovante na entrega ou retirada.</small>
+    </div>
     <button class="btn primario" data-fechar>Voltar ao cardápio</button>
   </div>
 </div>
@@ -273,6 +299,7 @@ label input:focus,label textarea:focus{border-color:var(--accent)}
     </div>
     <label>Nome da loja<input id="aNome" maxlength="40"></label>
     <label>Frase de apresentação<input id="aSub" maxlength="80"></label>
+    <label>Chave Pix<input id="aPix" maxlength="80" placeholder="CPF, CNPJ, telefone, e-mail ou chave aleatória"></label>
     <button class="btn primario" id="btnSalvarAjustes" style="margin-top:16px">Salvar ajustes</button>
     <div id="demoAviso"></div>
   </section>
@@ -367,7 +394,7 @@ async function chamar(action, dados) {
 /* ================= MODO DEMONSTRAÇÃO ================= */
 function U(id) { return 'https://images.unsplash.com/photo-' + id + '?w=600&q=70&auto=format&fit=crop'; }
 const SEED = {
-  config: { nomeLoja: 'Fátima Lanches', subtitulo: 'Sabor que refresca, qualidade que conquista!', pedidosAtivos: true },
+  config: { nomeLoja: 'Fátima Lanches', subtitulo: 'Sabor que refresca, qualidade que conquista!', pedidosAtivos: true, chavePix: '04897085365' },
   produtos: [
     { id: 'f1', nome: 'Hambúrguer Simples', descricao: 'Pão, hambúrguer, queijo e molho especial.', preco: 10, categoria: 'Hambúrgueres', foto: 'img/hb1.jpg', ativo: true, destaque: false },
     { id: 'f2', nome: 'Hambúrguer Completo', descricao: 'Pão, hambúrguer, queijo, presunto, ovo, alface, tomate, milho e molho.', preco: 11, categoria: 'Hambúrgueres', foto: 'img/hb2.jpg', ativo: true, destaque: false },
@@ -460,8 +487,10 @@ async function demo(action, d) {
         if (p && q) { total += p.preco * q; linhas.push(q + 'x ' + p.nome); }
       });
       if (!linhas.length) return { ok: false, erro: 'Carrinho vazio.' };
+      const pg = textoPagamento(d.pagamento, d.troco, total);
+      if (pg.erro) return { ok: false, erro: pg.erro };
       const id = db.pedidos.length + 1;
-      db.pedidos.push({ id, data: new Date().toISOString(), cliente, mesa: d.mesa || '', itens: linhas.join('\n'), total: Math.round(total * 100) / 100, obs: d.obs || '', status: 'Novo' });
+      db.pedidos.push({ id, data: new Date().toISOString(), cliente, mesa: d.mesa || '', itens: linhas.join('\n'), total: Math.round(total * 100) / 100, obs: d.obs || '', status: 'Novo', pagamento: pg.texto });
       gravarDemo(db); return { ok: true, id };
     }
     case 'pedidos': return { ok: true, pedidos: [...db.pedidos].reverse() };
@@ -602,22 +631,70 @@ function renderCarrinho() {
   $('#cTotal').textContent = brl(totalCarrinho());
 }
 
+/* ---------- pagamento ---------- */
+let pagamento = '';
+const DICAS_PAG = {
+  Pix: 'A chave Pix aparece assim que você finalizar o pedido.',
+  Dinheiro: 'Pague na entrega ou retirada.',
+  'Cartão': 'Débito ou crédito na maquininha, na entrega ou retirada.'
+};
+const numBR = v => Number(String(v || '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')) || 0;
+
+function textoPagamento(pag, troco, total) {
+  if (!DICAS_PAG[pag]) return { erro: 'Escolha a forma de pagamento.' };
+  if (pag === 'Cartão') return { texto: 'Cartão (maquininha)' };
+  if (pag === 'Dinheiro') {
+    const t = Number(troco) || 0;
+    if (!t) return { texto: 'Dinheiro' };
+    if (t < total) return { erro: 'O troco precisa ser para um valor maior que o total.' };
+    return { texto: 'Dinheiro (troco p/ ' + brl(t) + ')' };
+  }
+  return { texto: 'Pix' };
+}
+
+function escolherPag(p) {
+  pagamento = p;
+  $$('.pag').forEach(b => b.classList.toggle('ativo', b.dataset.pag === p));
+  $('#dicaPag').textContent = DICAS_PAG[p] || '';
+  $('#boxTroco').hidden = p !== 'Dinheiro';
+  $('#cErro').textContent = '';
+}
+
+async function copiarPix() {
+  const t = $('#pixChave').textContent;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const i = document.createElement('textarea'); i.value = t; document.body.appendChild(i);
+    i.select(); try { document.execCommand('copy'); } catch (x) {} i.remove();
+  }
+  toast('Chave Pix copiada!');
+}
+
 async function finalizar() {
   const nome = $('#cNome').value.trim();
   $('#cErro').textContent = '';
   if (!nome) { $('#cErro').textContent = 'Informe seu nome para finalizar.'; $('#cNome').focus(); return; }
+  if (!pagamento) { $('#cErro').textContent = 'Escolha a forma de pagamento.'; return; }
+  const total = totalCarrinho();
+  const troco = pagamento === 'Dinheiro' ? numBR($('#cTroco').value) : 0;
+  if (troco && troco < total) { $('#cErro').textContent = 'O troco precisa ser para um valor maior que o total.'; $('#cTroco').focus(); return; }
   const btn = $('#btnFinalizar');
   btn.disabled = true; btn.textContent = 'Enviando...';
   try {
     const r = await api('pedido', {
       cliente: nome, mesa: $('#cMesa').value.trim(), obs: $('#cObs').value.trim(),
+      pagamento, troco,
       itens: Object.entries(carrinho).map(([id, qtd]) => ({ id, qtd }))
     });
     if (!r.ok) throw new Error(r.erro);
     carrinho = {};
-    $('#cMesa').value = ''; $('#cObs').value = '';
+    $('#cMesa').value = ''; $('#cObs').value = ''; $('#cTroco').value = '';
     fechar($('#mCarrinho'));
     $('#sucessoTitulo').textContent = `Pedido #${r.id} enviado!`;
+    const chave = String(estado.config.chavePix || '').trim();
+    $('#pixBox').hidden = !(pagamento === 'Pix' && chave);
+    $('#pixChave').textContent = chave;
+    $('#pixValor').textContent = brl(total);
     abrir('#mSucesso');
     render();
   } catch (e) {
@@ -710,6 +787,7 @@ async function carregarPedidos() {
     <article class="pedido st-${norm(p.status)}">
       <div class="ped-topo"><strong>#${esc(p.id)} · ${esc(p.cliente)}</strong><span>${dataHora(p.data)}</span></div>
       ${p.mesa ? `<div class="ped-mesa">${esc(p.mesa)}</div>` : ''}
+      ${p.pagamento ? `<div class="ped-pag">Pagamento: ${esc(p.pagamento)}</div>` : ''}
       <pre>${esc(p.itens)}</pre>
       ${p.obs ? `<p class="ped-obs">Obs.: ${esc(p.obs)}</p>` : ''}
       <div class="ped-rodape"><strong>${brl(p.total)}</strong>
@@ -829,12 +907,13 @@ function carregarAjustes() {
   $('#aPedidos').checked = !!estado.config.pedidosAtivos;
   $('#aNome').value = estado.config.nomeLoja || '';
   $('#aSub').value = estado.config.subtitulo || '';
+  $('#aPix').value = estado.config.chavePix || '';
   $('#demoAviso').innerHTML = API_URL ? '' :
     `<div class="aviso-demo">Modo demonstração: os dados ficam salvos só neste navegador.
      <br><button class="btn fantasma" id="btnResetDemo">Restaurar dados de exemplo</button></div>`;
 }
 async function salvarAjustes() {
-  const config = { pedidosAtivos: $('#aPedidos').checked, nomeLoja: $('#aNome').value.trim(), subtitulo: $('#aSub').value.trim() };
+  const config = { pedidosAtivos: $('#aPedidos').checked, nomeLoja: $('#aNome').value.trim(), subtitulo: $('#aSub').value.trim(), chavePix: $('#aPix').value.trim() };
   const r = await chamar('salvarConfig', { config });
   if (!r.ok) return;
   estado.config = { ...estado.config, ...config };
@@ -850,6 +929,7 @@ document.addEventListener('click', e => {
   const d = b.dataset;
   if (d.mais) mudar(d.mais, 1);
   else if (d.menos) mudar(d.menos, -1);
+  else if (d.pag) escolherPag(d.pag);
   else if (d.cat !== undefined) { estado.categoria = d.cat; render(); }
   else if (d.aba) trocarAba(d.aba);
   else if (d.editar) abrirProduto(d.editar);
@@ -869,6 +949,7 @@ document.addEventListener('keydown', e => {
 $('#busca').addEventListener('input', e => { estado.busca = e.target.value; render(); });
 $('#barraCarrinho').addEventListener('click', () => { renderCarrinho(); $('#cErro').textContent = ''; abrir('#mCarrinho'); });
 $('#btnFinalizar').addEventListener('click', finalizar);
+$('#btnCopiarPix').addEventListener('click', copiarPix);
 $('#btnAdmin').addEventListener('click', () => { $('#pinErro').textContent = ''; abrir('#mPin'); setTimeout(() => $('#pinInput').focus(), 50); });
 $('#formPin').addEventListener('submit', entrar);
 $('#btnSair').addEventListener('click', sair);
